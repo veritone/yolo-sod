@@ -112,14 +112,8 @@ def export():
 
     # set the output base name: model_name + device_name + precision + input_size
     model_base = args.model_od.split(".")[0]
-    output_name = (
-        model_base
-        + "-"
-        + str(args.img_size[0])
-        + "x"
-        + str(args.img_size[1])
-    )
-    
+    output_name = model_base + "-" + str(args.img_size[0]) + "x" + str(args.img_size[1])
+
     engine_name = f"{output_name  + '-' + device_name + '-' + args.precision_od}"
 
     # rename files {model_base} to {output_name}
