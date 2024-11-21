@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "yolo-sod"
+version = "1.0.0"
+description = "Standalone object detector"
+authors = ["Veritone Inc. <support@veritone.com>"]
+license = "AGPL-3.0"
+readme = "README.md"
+include = ["yolo_sod/VOC2007.yaml"]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+ultralytics = "8.3.24"
+torchaudio = "2.5.0"
+tensorrt = "8.5.3.1"
+
+[tool.poetry.scripts]
+yolo-sod = "yolo_sod.main:inference"
+yolo-sod-export = "yolo_sod.main:export"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
