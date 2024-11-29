@@ -111,7 +111,7 @@ def export():
     device_name = torch.cuda.get_device_name(device_index).replace(" ", "_")
 
     # set the output base name: model_name + device_name + precision + input_size
-    model_base = args.model_od.split(".")[0]
+    model_base = os.path.splitext(args.model_od)[0]
     output_name = model_base + "-" + str(args.img_size[0]) + "x" + str(args.img_size[1])
 
     engine_name = f"{output_name  + '-' + device_name + '-' + args.precision_od}"
