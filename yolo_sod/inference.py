@@ -44,20 +44,20 @@ def filler(
         padding (Tuple[int, int, int, int]): Padding to apply to the video
 
     """
-    s = StreamReader(input_path)
-    s.add_video_stream(
-        batch_size,
-        decoder=CODEC_MAP[codec],
-        hw_accel="cuda:0",
-        buffer_chunk_size=-1,
-        decoder_option={"resize": f"{decode_width}x{decode_height}"},
-    )
-    padding_function = torch.nn.ZeroPad2d(padding)
-
-    current_batch_size = batch_size
-
-    finished = False
     try:
+        s = StreamReader(input_path)
+        s.add_video_stream(
+            batch_size,
+            decoder=CODEC_MAP[codec],
+            hw_accel="cuda:0",
+            buffer_chunk_size=-1,
+            decoder_option={"resize": f"{decode_width}x{decode_height}"},
+        )
+        padding_function = torch.nn.ZeroPad2d(padding)
+
+        current_batch_size = batch_size
+
+        finished = False
         while not finished:  # 1 means EOF
             finished = s.fill_buffer() == 1  # 1 means EOF
             (video,) = s.pop_chunks()
@@ -84,7 +84,7 @@ def filler(
         inference_finished.wait()
     except Exception as e:
         # Catch any exceptions and notify the inference loop (otherwise it will hang indefinitely)
-        print(e)
+        print(f"{type(e).__name__}: {e}")
         filler_finished.set()
         queue.put((None, 0))
 
