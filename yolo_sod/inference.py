@@ -1,5 +1,6 @@
 from ultralytics import YOLO
 import itertools
+import sys
 import torch
 import torch.multiprocessing as mp
 from torchaudio.io import StreamReader
@@ -56,30 +57,36 @@ def filler(
     current_batch_size = batch_size
 
     finished = False
-    while not finished:  # 1 means EOF
-        finished = s.fill_buffer() == 1  # 1 means EOF
-        (video,) = s.pop_chunks()
-        video = yuv_to_rgb(video)
-        video = padding_function(video)
-        current_batch_size = video.size(0)
-        if current_batch_size < batch_size:
-            # Pad the last batch with zeros
-            video = torch.cat(
-                [
-                    video,
-                    torch.zeros(
-                        batch_size - video.size(0),
-                        *video.size()[1:],
-                        device=video.device,
-                    ),
-                ],
-                dim=0,
-            )
-        queue.put((video, current_batch_size))
-    # Notify inference loop the video is finished
-    filler_finished.set()
-    # Keep process alive until inference is finished (otherwise memory may be released)
-    inference_finished.wait()
+    try:
+        while not finished:  # 1 means EOF
+            finished = s.fill_buffer() == 1  # 1 means EOF
+            (video,) = s.pop_chunks()
+            video = yuv_to_rgb(video)
+            video = padding_function(video)
+            current_batch_size = video.size(0)
+            if current_batch_size < batch_size:
+                # Pad the last batch with zeros
+                video = torch.cat(
+                    [
+                        video,
+                        torch.zeros(
+                            batch_size - video.size(0),
+                            *video.size()[1:],
+                            device=video.device,
+                        ),
+                    ],
+                    dim=0,
+                )
+            queue.put((video, current_batch_size))
+        # Notify inference loop the video is finished
+        filler_finished.set()
+        # Keep process alive until inference is finished (otherwise memory may be released)
+        inference_finished.wait()
+    except Exception as e:
+        # Catch any exceptions and notify the inference loop (otherwise it will hang indefinitely)
+        print(e)
+        filler_finished.set()
+        queue.put((None, 0))
 
 
 def process(args):
@@ -125,6 +132,9 @@ def process(args):
     # Loop while the filler process is still running or there are frames left in the queue
     while not filler_finished.is_set() or not queue.empty():
         video, current_batch_size = queue.get()
+        if video is None:
+            # Filler process encountered an error
+            sys.exit("yolo-sod encountered an error while decoding video")
         results = model.predict(
             source=video,
             stream=True,
