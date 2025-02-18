@@ -1,10 +1,12 @@
 import torch
+import locale
 from ultralytics import YOLO
 from yolo_sod.utils import JSON_Writer, yuv_to_rgb, get_scale_factor
 from torch.utils.data import Dataset, DataLoader
 from torchvision.transforms import Resize, PILToTensor
 from PIL import Image
 from pathlib import Path
+from functools import cmp_to_key
 
 
 class ImageDataset(Dataset):
@@ -23,7 +25,11 @@ class ImageDataset(Dataset):
             imgsz (Tuple[int, int]): Size of the images to be processed
         """
         self.directory = directory
-        self.image_files = sorted(path for path in Path(directory).glob("*"))
+        locale.setlocale(locale.LC_ALL, "")
+        self.image_files = sorted(
+            (str(path) for path in Path(directory).glob("*")),
+            key=cmp_to_key(locale.strcoll),
+        )
         self.pil_to_tensor = PILToTensor()
         self.imgsz = imgsz
 
@@ -90,6 +96,7 @@ def process(args):
             batch=batch_size,
             conf=args.confidence_threshold_od,
             iou=args.nms_iou_threshold,
+            verbose=args.verbose,
         )
         for frame, scaling_factor in zip(results, image[1]):
             json_writer.width_scale = float(scaling_factor)
